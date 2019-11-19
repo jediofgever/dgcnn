@@ -10,7 +10,7 @@ import indoor3d_util
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, default=0, help='GPU to use [default: GPU 0]')
 parser.add_argument('--batch_size', type=int, default=1, help='Batch Size during training [default: 1]')
-parser.add_argument('--num_point', type=int, default=4096, help='Point number [default: 4096]')
+parser.add_argument('--num_point', type=int, default=2048, help='Point number [default: 4096]')
 parser.add_argument('--model_path', required=True, help='model checkpoint file path')
 parser.add_argument('--dump_dir', required=True, help='dump folder path')
 parser.add_argument('--output_filelist', required=True, help='TXT filename, filelist, each line is an output for a room')
@@ -29,7 +29,7 @@ LOG_FOUT = open(os.path.join(DUMP_DIR, 'log_evaluate.txt'), 'w')
 LOG_FOUT.write(str(FLAGS)+'\n')
 ROOM_PATH_LIST = [os.path.join(ROOT_DIR,line.rstrip()) for line in open(FLAGS.room_data_filelist)]
 
-NUM_CLASSES = 13
+NUM_CLASSES = 1
 
 def log_string(out_str):
   LOG_FOUT.write(out_str+'\n')
@@ -67,12 +67,14 @@ def evaluate():
   total_correct = 0
   total_seen = 0
   fout_out_filelist = open(FLAGS.output_filelist, 'w')
+
   for room_path in ROOM_PATH_LIST:
+
     out_data_label_filename = os.path.basename(room_path)[:-4] + '_pred.txt'
     out_data_label_filename = os.path.join(DUMP_DIR, out_data_label_filename)
     out_gt_label_filename = os.path.basename(room_path)[:-4] + '_gt.txt'
     out_gt_label_filename = os.path.join(DUMP_DIR, out_gt_label_filename)
-   
+
     print(room_path, out_data_label_filename)
     # Evaluate room one by one.
     a, b = eval_one_epoch(sess, ops, room_path, out_data_label_filename, out_gt_label_filename)
@@ -99,8 +101,9 @@ def eval_one_epoch(sess, ops, room_path, out_data_label_filename, out_gt_label_f
   fout_gt_label = open(out_gt_label_filename, 'w')
   
   current_data, current_label = indoor3d_util.room2blocks_wrapper_normalized(room_path, NUM_POINT)
+
   current_data = current_data[:,0:NUM_POINT,:]
-  current_label = np.squeeze(current_label)
+  #current_label = np.squeeze(current_label)
   # Get room dimension..
   data_label = np.load(room_path)
   data = data_label[:,0:6]
@@ -119,7 +122,7 @@ def eval_one_epoch(sess, ops, room_path, out_data_label_filename, out_gt_label_f
     cur_batch_size = end_idx - start_idx
     
     feed_dict = {ops['pointclouds_pl']: current_data[start_idx:end_idx, :, :],
-           ops['labels_pl']: current_label[start_idx:end_idx],
+           ops['labels_pl']: current_label[start_idx:end_idx,:],
            ops['is_training_pl']: is_training}
     loss_val, pred_val = sess.run([ops['loss'], ops['pred_softmax']],
                     feed_dict=feed_dict)
@@ -154,8 +157,8 @@ def eval_one_epoch(sess, ops, room_path, out_data_label_filename, out_gt_label_f
     for i in range(start_idx, end_idx):
       for j in range(NUM_POINT):
         l = current_label[i, j]
-        total_seen_class[l] += 1
-        total_correct_class[l] += (pred_label[i-start_idx, j] == l)
+        #total_seen_class[l] += 1
+        #total_correct_class[l] += (pred_label[i-start_idx, j] == l)
 
   log_string('eval mean loss: %f' % (loss_sum / float(total_seen/NUM_POINT)))
   log_string('eval accuracy: %f'% (total_correct / float(total_seen)))

@@ -10,7 +10,7 @@ sys.path.append(BASE_DIR)
 # CONSTANTS
 # -----------------------------------------------------------------------------
 
-DATA_PATH = os.path.join(ROOT_DIR, 'data', 'Stanford3dDataset_v1.2_Aligned_Version')
+DATA_PATH = os.path.join(ROOT_DIR, 'data', 'gazebo_test_data')
 g_classes = [x.rstrip() for x in open(os.path.join(BASE_DIR, 'meta/class_names.txt'))]
 g_class2label = {cls: i for i,cls in enumerate(g_classes)}
 g_class2color = {'ceiling': [0,255,0],
@@ -180,6 +180,7 @@ def room2blocks(data, label, num_point, block_size=1.0, stride=1.0,
   block_data_list = []
   block_label_list = []
   idx = 0
+  print(len(xbeg_list))
   for idx in range(len(xbeg_list)): 
      xbeg = xbeg_list[idx]
      ybeg = ybeg_list[idx]
@@ -197,7 +198,7 @@ def room2blocks(data, label, num_point, block_size=1.0, stride=1.0,
        sample_data_label(block_data, block_label, num_point)
      block_data_list.append(np.expand_dims(block_data_sampled, 0))
      block_label_list.append(np.expand_dims(block_label_sampled, 0))
-      
+  #print(len(block_data_list))    
   return np.concatenate(block_data_list, 0), \
        np.concatenate(block_label_list, 0)
 
@@ -230,26 +231,30 @@ def room2blocks_plus_normalized(data_label, num_point, block_size, stride,
   """ room2block, with input filename and RGB preprocessing.
     for each block centralize XYZ, add normalized XYZ as 678 channels
   """
-  data = data_label[:,0:6]
-  data[:,3:6] /= 255.0
-  label = data_label[:,-1].astype(np.uint8)
-  max_room_x = max(data[:,0])
-  max_room_y = max(data[:,1])
-  max_room_z = max(data[:,2])
+
+  #max_room_x = max(data[:,0])
+  #max_room_y = max(data[:,1])
+  #max_room_z = max(data[:,2])
+
+  #data_batch, label_batch = room2blocks(data, label, num_point, block_size, stride,
+  #                    random_sample, sample_num, sample_aug)
+  print("GOT HEEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")     
   
-  data_batch, label_batch = room2blocks(data, label, num_point, block_size, stride,
-                      random_sample, sample_num, sample_aug)
-  new_data_batch = np.zeros((data_batch.shape[0], num_point, 9))
-  for b in range(data_batch.shape[0]):
-    new_data_batch[b, :, 6] = data_batch[b, :, 0]/max_room_x
-    new_data_batch[b, :, 7] = data_batch[b, :, 1]/max_room_y
-    new_data_batch[b, :, 8] = data_batch[b, :, 2]/max_room_z
-    minx = min(data_batch[b, :, 0])
-    miny = min(data_batch[b, :, 1])
-    data_batch[b, :, 0] -= (minx+block_size/2)
-    data_batch[b, :, 1] -= (miny+block_size/2)
-  new_data_batch[:, :, 0:6] = data_batch
-  return new_data_batch, label_batch
+
+ 
+
+
+  new_data_batch = np.zeros((1, num_point, 9))
+  new_label_batch = np.zeros((1,num_point))  
+
+  print(new_label_batch.shape)
+
+  new_data_batch[:, :, 0:9] = data_label[:,0:9]
+
+  for i in range(0,len(data_label[0])):
+    new_label_batch[0,i] = data_label[i,9:10]
+  
+  return new_data_batch, new_label_batch
 
 
 def room2blocks_wrapper_normalized(data_label_filename, num_point, block_size=1.0, stride=1.0,

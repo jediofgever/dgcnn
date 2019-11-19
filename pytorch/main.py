@@ -64,7 +64,7 @@ def train(args, io):
         opt = optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-4)
 
     scheduler = CosineAnnealingLR(opt, args.epochs, eta_min=args.lr)
-    
+    torch.cuda.empty_cache()
     criterion = cal_loss
 
     best_test_acc = 0
@@ -78,6 +78,7 @@ def train(args, io):
         model.train()
         train_pred = []
         train_true = []
+        print('epoch %d', epoch)
         for data, label in train_loader:
             data, label = data.to(device), label.to(device).squeeze()
             data = data.permute(0, 2, 1)
@@ -177,9 +178,9 @@ if __name__ == "__main__":
                         help='Model to use, [pointnet, dgcnn]')
     parser.add_argument('--dataset', type=str, default='modelnet40', metavar='N',
                         choices=['modelnet40'])
-    parser.add_argument('--batch_size', type=int, default=32, metavar='batch_size',
+    parser.add_argument('--batch_size', type=int, default=4, metavar='batch_size',
                         help='Size of batch)')
-    parser.add_argument('--test_batch_size', type=int, default=16, metavar='batch_size',
+    parser.add_argument('--test_batch_size', type=int, default=4, metavar='batch_size',
                         help='Size of batch)')
     parser.add_argument('--epochs', type=int, default=250, metavar='N',
                         help='number of episode to train ')

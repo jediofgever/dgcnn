@@ -17,11 +17,11 @@ import tf_util
 from model import *
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--num_gpu', type=int, default=2, help='the number of GPUs to use [default: 2]')
+parser.add_argument('--num_gpu', type=int, default=1, help='the number of GPUs to use [default: 2]')
 parser.add_argument('--log_dir', default='log', help='Log dir [default: log]')
-parser.add_argument('--num_point', type=int, default=4096, help='Point number [default: 4096]')
+parser.add_argument('--num_point', type=int, default=2048, help='Point number [default: 4096]')
 parser.add_argument('--max_epoch', type=int, default=101, help='Epoch to run [default: 50]')
-parser.add_argument('--batch_size', type=int, default=12, help='Batch Size during training for each GPU [default: 24]')
+parser.add_argument('--batch_size', type=int, default=4, help='Batch Size during training for each GPU [default: 24]')
 parser.add_argument('--learning_rate', type=float, default=0.001, help='Initial learning rate [default: 0.001]')
 parser.add_argument('--momentum', type=float, default=0.9, help='Initial learning rate [default: 0.9]')
 parser.add_argument('--optimizer', default='adam', help='adam or momentum [default: adam]')
@@ -49,8 +49,8 @@ os.system('cp train.py %s' % (LOG_DIR))
 LOG_FOUT = open(os.path.join(LOG_DIR, 'log_train.txt'), 'w')
 LOG_FOUT.write(str(FLAGS)+'\n')
 
-MAX_NUM_POINT = 4096
-NUM_CLASSES = 13
+MAX_NUM_POINT = 2048
+NUM_CLASSES = 1
 
 BN_INIT_DECAY = 0.5
 BN_DECAY_DECAY_RATE = 0.5
@@ -59,9 +59,8 @@ BN_DECAY_CLIP = 0.99
 
 HOSTNAME = socket.gethostname()
 
-ALL_FILES = provider.getDataFiles('indoor3d_sem_seg_hdf5_data/all_files.txt') 
-room_filelist = [line.rstrip() for line in open('indoor3d_sem_seg_hdf5_data/room_filelist.txt')] 
-print len(room_filelist)
+ALL_FILES = provider.getDataFiles('gazebo_dataset/all_files.txt') 
+ 
 
 # Load ALL data
 data_batch_list = []
@@ -72,22 +71,16 @@ for h5_filename in ALL_FILES:
   label_batch_list.append(label_batch)
 data_batches = np.concatenate(data_batch_list, 0)
 label_batches = np.concatenate(label_batch_list, 0)
+
 print(data_batches.shape)
 print(label_batches.shape)
 
-test_area = 'Area_'+str(FLAGS.test_area)
-train_idxs = []
-test_idxs = []
-for i,room_name in enumerate(room_filelist):
-  if test_area in room_name:
-    test_idxs.append(i)
-  else:
-    train_idxs.append(i)
 
-train_data = data_batches[train_idxs,...]
-train_label = label_batches[train_idxs]
-test_data = data_batches[test_idxs,...]
-test_label = label_batches[test_idxs]
+train_data = data_batches
+train_label = label_batches
+test_data = data_batches
+test_label = label_batches
+
 print(train_data.shape, train_label.shape)
 print(test_data.shape, test_label.shape)
 
@@ -168,9 +161,10 @@ def train():
     pointclouds_phs = []
     labels_phs = []
     is_training_phs =[]
+    weight_decay=0.04
 
     with tf.variable_scope(tf.get_variable_scope()):
-      for i in xrange(FLAGS.num_gpu):
+      for i in range(FLAGS.num_gpu):
         with tf.device('/gpu:%d' % i):
           with tf.name_scope('%s_%d' % (TOWER_NAME, i)) as scope:
       
@@ -180,8 +174,8 @@ def train():
             pointclouds_phs.append(pointclouds_pl)
             labels_phs.append(labels_pl)
             is_training_phs.append(is_training_pl)
-      
-            pred = get_model(pointclouds_phs[-1], is_training_phs[-1], bn_decay=bn_decay)
+            
+            pred = get_model(pointclouds_phs[-1], is_training_phs[-1], bn_decay=bn_decay,weight_decay = 0.04)
             loss = get_loss(pred, labels_phs[-1])
             tf.summary.scalar('loss', loss)
 
@@ -264,11 +258,8 @@ def train_one_epoch(sess, ops, train_writer):
     
     
     feed_dict = {ops['pointclouds_phs'][0]: current_data[start_idx_0:end_idx_0, :, :],
-                 ops['pointclouds_phs'][1]: current_data[start_idx_1:end_idx_1, :, :],
                  ops['labels_phs'][0]: current_label[start_idx_0:end_idx_0],
-                 ops['labels_phs'][1]: current_label[start_idx_1:end_idx_1],
-                 ops['is_training_phs'][0]: is_training,
-                 ops['is_training_phs'][1]: is_training}
+                 ops['is_training_phs'][0]: is_training}
     summary, step, _, loss_val, pred_val = sess.run([ops['merged'], ops['step'], ops['train_op'], ops['loss'], ops['pred']],
                      feed_dict=feed_dict)
     train_writer.add_summary(summary, step)

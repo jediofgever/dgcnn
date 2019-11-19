@@ -1,3 +1,4 @@
+data/gazebo_test_data/test_frame.npy
 data/stanford_indoor3d/Area_1_conferenceRoom_1.npy
 data/stanford_indoor3d/Area_1_conferenceRoom_2.npy
 data/stanford_indoor3d/Area_1_copyRoom_1.npy
