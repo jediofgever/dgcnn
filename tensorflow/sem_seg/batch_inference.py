@@ -10,7 +10,7 @@ import indoor3d_util
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, default=0, help='GPU to use [default: GPU 0]')
 parser.add_argument('--batch_size', type=int, default=1, help='Batch Size during training [default: 1]')
-parser.add_argument('--num_point', type=int, default=2048, help='Point number [default: 4096]')
+parser.add_argument('--num_point', type=int, default=4096, help='Point number [default: 4096]')
 parser.add_argument('--model_path', required=True, help='model checkpoint file path')
 parser.add_argument('--dump_dir', required=True, help='dump folder path')
 parser.add_argument('--output_filelist', required=True, help='TXT filename, filelist, each line is an output for a room')
@@ -29,7 +29,7 @@ LOG_FOUT = open(os.path.join(DUMP_DIR, 'log_evaluate.txt'), 'w')
 LOG_FOUT.write(str(FLAGS)+'\n')
 ROOM_PATH_LIST = [os.path.join(ROOT_DIR,line.rstrip()) for line in open(FLAGS.room_data_filelist)]
 
-NUM_CLASSES = 1
+NUM_CLASSES = 2
 
 def log_string(out_str):
   LOG_FOUT.write(out_str+'\n')
@@ -107,9 +107,9 @@ def eval_one_epoch(sess, ops, room_path, out_data_label_filename, out_gt_label_f
   # Get room dimension..
   data_label = np.load(room_path)
   data = data_label[:,0:6]
-  max_room_x = max(data[:,0])
-  max_room_y = max(data[:,1])
-  max_room_z = max(data[:,2])
+  max_room_x = 8
+  max_room_y = 8
+  max_room_z = 8
   
   file_size = current_data.shape[0]
   num_batches = file_size // BATCH_SIZE

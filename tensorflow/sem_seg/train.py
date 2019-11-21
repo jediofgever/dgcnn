@@ -19,7 +19,7 @@ from model import *
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_gpu', type=int, default=1, help='the number of GPUs to use [default: 2]')
 parser.add_argument('--log_dir', default='log', help='Log dir [default: log]')
-parser.add_argument('--num_point', type=int, default=2048, help='Point number [default: 4096]')
+parser.add_argument('--num_point', type=int, default=4096, help='Point number [default: 4096]')
 parser.add_argument('--max_epoch', type=int, default=101, help='Epoch to run [default: 50]')
 parser.add_argument('--batch_size', type=int, default=4, help='Batch Size during training for each GPU [default: 24]')
 parser.add_argument('--learning_rate', type=float, default=0.001, help='Initial learning rate [default: 0.001]')
@@ -49,7 +49,7 @@ os.system('cp train.py %s' % (LOG_DIR))
 LOG_FOUT = open(os.path.join(LOG_DIR, 'log_train.txt'), 'w')
 LOG_FOUT.write(str(FLAGS)+'\n')
 
-MAX_NUM_POINT = 2048
+MAX_NUM_POINT = 4096
 NUM_CLASSES = 1
 
 BN_INIT_DECAY = 0.5
