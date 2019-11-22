@@ -1,1 +1,4 @@
-gazebo_dataset/data_train0.h5
+gazebo_dataset/data0.h5
+gazebo_dataset/data1.h5
+gazebo_dataset/data2.h5
+gazebo_dataset/data3.h5

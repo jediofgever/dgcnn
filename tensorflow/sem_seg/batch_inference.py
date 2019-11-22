@@ -6,6 +6,11 @@ ROOT_DIR = os.path.dirname(BASE_DIR)
 sys.path.append(BASE_DIR)
 from model import *
 import indoor3d_util
+from plyfile import PlyData, PlyElement
+import numpy as np
+import open3d as o3d
+import copy
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, default=0, help='GPU to use [default: GPU 0]')
@@ -14,9 +19,11 @@ parser.add_argument('--num_point', type=int, default=4096, help='Point number [d
 parser.add_argument('--model_path', required=True, help='model checkpoint file path')
 parser.add_argument('--dump_dir', required=True, help='dump folder path')
 parser.add_argument('--output_filelist', required=True, help='TXT filename, filelist, each line is an output for a room')
-parser.add_argument('--room_data_filelist', required=True, help='TXT filename, filelist, each line is a test room data label file.')
+parser.add_argument('--room_data_filelist' , help='TXT filename, filelist, each line is a test room data label file.')
 parser.add_argument('--no_clutter', action='store_true', help='If true, donot count the clutter class')
 parser.add_argument('--visu', action='store_true', help='Whether to output OBJ file for prediction visualization.')
+parser.add_argument('--inference_dir',type= str, default="/home/atas/inference/",help="directory where ply files are dumped by ROS")
+
 FLAGS = parser.parse_args()
 
 BATCH_SIZE = FLAGS.batch_size
@@ -24,10 +31,12 @@ NUM_POINT = FLAGS.num_point
 MODEL_PATH = FLAGS.model_path
 GPU_INDEX = FLAGS.gpu
 DUMP_DIR = FLAGS.dump_dir
+INFERENCE_DIR = FLAGS.inference_dir
+
 if not os.path.exists(DUMP_DIR): os.mkdir(DUMP_DIR)
 LOG_FOUT = open(os.path.join(DUMP_DIR, 'log_evaluate.txt'), 'w')
 LOG_FOUT.write(str(FLAGS)+'\n')
-ROOM_PATH_LIST = [os.path.join(ROOT_DIR,line.rstrip()) for line in open(FLAGS.room_data_filelist)]
+#ROOM_PATH_LIST = [os.path.join(ROOT_DIR,line.rstrip()) for line in open(FLAGS.room_data_filelist)]
 
 NUM_CLASSES = 2
 
@@ -36,7 +45,62 @@ def log_string(out_str):
   LOG_FOUT.flush()
   print(out_str)
 
-def evaluate():
+def room2blocks_plus_normalized(data_label, num_point, block_size, stride,
+                random_sample, sample_num, sample_aug):
+  """ room2block, with input filename and RGB preprocessing.
+    for each block centralize XYZ, add normalized XYZ as 678 channels
+  """
+
+ 
+
+  new_data_batch = np.zeros((1, num_point, 9))
+  new_label_batch = np.zeros((1,num_point))  
+
+  print(new_label_batch.shape)
+
+  new_data_batch[:, :, 0:9] = data_label[:,0:9]
+
+  for i in range(0,len(data_label[0])):
+    new_label_batch[0,i] = data_label[i,9:10]
+  
+  return new_data_batch, new_label_batch
+
+
+
+def ply2npy(ply_file_path):
+  test_pcd_frame_as_npy_array = np.zeros((NUM_POINT,10),dtype=float)
+
+  plydata = PlyData.read(ply_file_path)
+
+  for j in range(0, NUM_POINT): 
+    label = 0
+    if(plydata['vertex']['blue'][j] > 0 or plydata['vertex']['red'][j] > 0 or plydata['vertex']['green'][j] > 0 ):
+        label = 1
+
+    else:
+        label = 0
+                        
+
+    MAX_X, MAX_, MAX_Z = 4,4,4
+    MIN_X, MIN_Y, MIN_Z = -4,-4,-4
+ 
+    test_pcd_frame_as_npy_array[j] = [plydata['vertex']['x'][j], plydata['vertex']['y'][j], plydata['vertex']['z'][j], 
+                  plydata['vertex']['red'][j]/255.0, plydata['vertex']['green'][j]/255.0,plydata['vertex']['blue'][j]/255.0, 
+                 (plydata['vertex']['x'][j]-MIN_X)/8.0,(plydata['vertex']['y'][j]-MIN_Y)/8.0,(plydata['vertex']['z'][j]-MIN_Z)/8.0,label]
+  return test_pcd_frame_as_npy_array
+
+
+
+
+def room2blocks_wrapper_normalized(data_label_npy, num_point, block_size=1.0, stride=1.0,
+                   random_sample=False, sample_num=None, sample_aug=1):
+  data_label = data_label_npy
+
+  return room2blocks_plus_normalized(data_label, num_point, block_size, stride,
+                     random_sample, sample_num, sample_aug)
+ 
+
+def evaluate(ply_file_path, out_ply_file_path):
   is_training = False
    
   with tf.device('/gpu:'+str(GPU_INDEX)):
@@ -67,24 +131,24 @@ def evaluate():
   total_correct = 0
   total_seen = 0
   fout_out_filelist = open(FLAGS.output_filelist, 'w')
+  
 
-  for room_path in ROOM_PATH_LIST:
+  out_data_label_filename = os.path.basename(ply_file_path)[:-4] + '_pred.txt'
+  out_data_label_filename = os.path.join(DUMP_DIR, out_data_label_filename)
+  out_gt_label_filename = os.path.basename(ply_file_path)[:-4] + '_gt.txt'
+  out_gt_label_filename = os.path.join(DUMP_DIR, out_gt_label_filename)
 
-    out_data_label_filename = os.path.basename(room_path)[:-4] + '_pred.txt'
-    out_data_label_filename = os.path.join(DUMP_DIR, out_data_label_filename)
-    out_gt_label_filename = os.path.basename(room_path)[:-4] + '_gt.txt'
-    out_gt_label_filename = os.path.join(DUMP_DIR, out_gt_label_filename)
-
-    print(room_path, out_data_label_filename)
+  print(ply_file_path, out_data_label_filename)
     # Evaluate room one by one.
-    a, b = eval_one_epoch(sess, ops, room_path, out_data_label_filename, out_gt_label_filename)
-    total_correct += a
-    total_seen += b
-    fout_out_filelist.write(out_data_label_filename+'\n')
+  a, b = eval_one_epoch(sess, ops, ply_file_path,out_ply_file_path, out_data_label_filename, out_gt_label_filename)
+  total_correct += a
+  total_seen += b
+  fout_out_filelist.write(out_data_label_filename+'\n')
+  
   fout_out_filelist.close()
-  log_string('all room eval accuracy: %f'% (total_correct / float(total_seen)))
+  #log_string('all room eval accuracy: %f'% (total_correct / float(total_seen)))
 
-def eval_one_epoch(sess, ops, room_path, out_data_label_filename, out_gt_label_filename):
+def eval_one_epoch(sess, ops, ply_file_path, out_ply_file_path, out_data_label_filename, out_gt_label_filename):
   error_cnt = 0
   is_training = False
   total_correct = 0
@@ -94,19 +158,23 @@ def eval_one_epoch(sess, ops, room_path, out_data_label_filename, out_gt_label_f
   total_correct_class = [0 for _ in range(NUM_CLASSES)]
 
   if FLAGS.visu:
-    fout = open(os.path.join(DUMP_DIR, os.path.basename(room_path)[:-4]+'_pred.obj'), 'w')
-    fout_gt = open(os.path.join(DUMP_DIR, os.path.basename(room_path)[:-4]+'_gt.obj'), 'w')
-    fout_real_color = open(os.path.join(DUMP_DIR, os.path.basename(room_path)[:-4]+'_real_color.obj'), 'w')
+    fout = open(os.path.join(DUMP_DIR, os.path.basename(ply_file_path)[:-4]+'_pred.obj'), 'w')
+    fout_gt = open(os.path.join(DUMP_DIR, os.path.basename(ply_file_path)[:-4]+'_gt.obj'), 'w')
+    fout_real_color = open(os.path.join(DUMP_DIR, os.path.basename(ply_file_path)[:-4]+'_real_color.obj'), 'w')
   fout_data_label = open(out_data_label_filename, 'w')
   fout_gt_label = open(out_gt_label_filename, 'w')
+
+  out_pcd = o3d.geometry.PointCloud()
+  xyz = np.zeros((NUM_POINT, 3))
+  colors = np.zeros((NUM_POINT, 3))
+
   
-  current_data, current_label = indoor3d_util.room2blocks_wrapper_normalized(room_path, NUM_POINT)
+  data_label_npy = ply2npy(ply_file_path)
+  current_data, current_label = room2blocks_wrapper_normalized(data_label_npy, NUM_POINT)
 
   current_data = current_data[:,0:NUM_POINT,:]
-  #current_label = np.squeeze(current_label)
-  # Get room dimension..
-  data_label = np.load(room_path)
-  data = data_label[:,0:6]
+   # Get room dimension..
+ 
   max_room_x = 8
   max_room_y = 8
   max_room_z = 8
@@ -145,9 +213,14 @@ def eval_one_epoch(sess, ops, room_path, out_data_label_filename, out_gt_label_f
         color = indoor3d_util.g_label2color[pred[i]]
         color_gt = indoor3d_util.g_label2color[current_label[start_idx+b, i]]
         if FLAGS.visu:
-          fout.write('v %f %f %f %d %d %d\n' % (pts[i,6], pts[i,7], pts[i,8], color[0], color[1], color[2]))
-          fout_gt.write('v %f %f %f %d %d %d\n' % (pts[i,6], pts[i,7], pts[i,8], color_gt[0], color_gt[1], color_gt[2]))
-        fout_data_label.write('%f %f %f %d %d %d %f %d\n' % (pts[i,6], pts[i,7], pts[i,8], pts[i,3], pts[i,4], pts[i,5], pred_val[b,i,pred[i]], pred[i]))
+          fout.write('v %f %f %f %d %d %d\n' % (pts[i,0], pts[i,1], pts[i,2], color[0], color[1], color[2]))
+          fout_gt.write('v %f %f %f %d %d %d\n' % (pts[i,0], pts[i,1], pts[i,2], color_gt[0], color_gt[1], color_gt[2]))
+
+          xyz[i, 0], xyz[i, 1],xyz[i, 2] = pts[i,0], pts[i,1], pts[i,2]
+          colors[i,0],colors[i,1],colors[i,2] = color[0], color[1], color[2]
+
+
+        fout_data_label.write('%f %f %f %d %d %d %f %d\n' % (pts[i,0], pts[i,1], pts[i,2], pts[i,3], pts[i,4], pts[i,5], pred_val[b,i,pred[i]], pred[i]))
         fout_gt_label.write('%d\n' % (l[i]))
     
     correct = np.sum(pred_label == current_label[start_idx:end_idx,:])
@@ -164,6 +237,11 @@ def eval_one_epoch(sess, ops, room_path, out_data_label_filename, out_gt_label_f
   log_string('eval accuracy: %f'% (total_correct / float(total_seen)))
   fout_data_label.close()
   fout_gt_label.close()
+
+  out_pcd.points = o3d.utility.Vector3dVector(xyz)
+  out_pcd.colors = o3d.utility.Vector3dVector(colors)
+  o3d.io.write_point_cloud(out_ply_file_path,out_pcd)
+
   if FLAGS.visu:
     fout.close()
     fout_gt.close()
@@ -171,6 +249,12 @@ def eval_one_epoch(sess, ops, room_path, out_data_label_filename, out_gt_label_f
 
 
 if __name__=='__main__':
-  with tf.Graph().as_default():
-    evaluate()
-  LOG_FOUT.close()
+
+  while(True):
+    with tf.Graph().as_default():
+
+      ply_file_path = INFERENCE_DIR+ "latest_raw.ply"
+      out_ply_file_path = INFERENCE_DIR+ "latest_segmented.ply"
+
+      evaluate(ply_file_path, out_ply_file_path)
+ 
