@@ -227,7 +227,7 @@ def room2blocks_plus_normalized(data_label, num_point, block_size, stride,
 
   #data_batch, label_batch = room2blocks(data, label, num_point, block_size, stride,
   #                    random_sample, sample_num, sample_aug)
-  print("GOT HEEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")     
+
   
 
  

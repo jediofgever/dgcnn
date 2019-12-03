@@ -254,7 +254,7 @@ if __name__=='__main__':
     with tf.Graph().as_default():
 
       ply_file_path = INFERENCE_DIR+ "latest_raw.ply"
-      out_ply_file_path = INFERENCE_DIR+ "latest_segmented.ply"
+      out_ply_file_path = INFERENCE_DIR+ "latest_segmented.pcd"
 
       evaluate(ply_file_path, out_ply_file_path)
  
