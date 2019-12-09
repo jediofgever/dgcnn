@@ -22,7 +22,7 @@ parser.add_argument('--output_filelist', required=True, help='TXT filename, file
 parser.add_argument('--room_data_filelist' , help='TXT filename, filelist, each line is a test room data label file.')
 parser.add_argument('--no_clutter', action='store_true', help='If true, donot count the clutter class')
 parser.add_argument('--visu', action='store_true', help='Whether to output OBJ file for prediction visualization.')
-parser.add_argument('--inference_dir',type= str, default="/home/atas/inference/",help="directory where ply files are dumped by ROS")
+parser.add_argument('--inference_dir',type= str, default="/home/atas/catkin_ws/src/ROS_FANUC_LRMATE200ID/inference/",help="directory where ply files are dumped by ROS")
 
 FLAGS = parser.parse_args()
 

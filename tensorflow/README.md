@@ -10,6 +10,5 @@ python train.py
 * Run the evaluation script after training finished:
 
 ``` bash
-python evalutate.py
-
+python3 batch_inference.py --model_path log1/epoch_80.ckpt --dump_dir log1/dump --output_filelist log1/output_filelist.txt --room_data_filelist meta/area1_data_label.txt --visu
 ```
