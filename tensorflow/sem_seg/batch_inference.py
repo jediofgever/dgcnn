@@ -10,6 +10,7 @@ from plyfile import PlyData, PlyElement
 import numpy as np
 import open3d as o3d
 import copy
+import rospy
 
 
 parser = argparse.ArgumentParser()
@@ -248,13 +249,32 @@ def eval_one_epoch(sess, ops, ply_file_path, out_ply_file_path, out_data_label_f
   return total_correct, total_seen
 
 
-if __name__=='__main__':
 
+
+ 
+from sensor_msgs.msg import PointCloud2 
+import sensor_msgs.point_cloud2 as pc2
+class PointNet_Ros_Node:
+  def __init__(self):
+    '''initiliaze  ros stuff '''
+    self.cloud_pub = rospy.Publisher("output/pointnet/segmented",PointCloud2)
+    self.cloud_sub = rospy.Subscriber("/corrected_cloud_ros_frame_convention", PointCloud2,self.callback,queue_size=1)
+
+  def callback(self, ros_point_cloud):
+    for p in pc2.read_points(ros_point_cloud, field_names = ("x", "y", "z"), skip_nans=True):
+     print (" x : %f  y: %f  z: %f" %(p[0],p[1],p[2]))
+      
+if __name__=='__main__':
+  
+  ic = PointNet_Ros_Node()
+  rospy.init_node('ros_point_cloud',anonymous=True)
+  rospy.spin()
+  '''
   while(True):
     with tf.Graph().as_default():
 
       ply_file_path = INFERENCE_DIR+ "latest_raw.ply"
       out_ply_file_path = INFERENCE_DIR+ "latest_segmented.pcd"
 
-      evaluate(ply_file_path, out_ply_file_path)
- 
+      #evaluate(ply_file_path, out_ply_file_path)      
+      # '''
