@@ -99,45 +99,61 @@ def room2blocks_wrapper_normalized(data_label_npy, num_point, block_size=1.0, st
 
   return room2blocks_plus_normalized(data_label, num_point, block_size, stride,
                      random_sample, sample_num, sample_aug)
+
+
+def xyzrgb_array_to_pointcloud2(points, colors, stamp=None, frame_id=None, seq=None):
+    '''
+    Create a sensor_msgs.PointCloud2 from an array
+    of points.
+    '''
+    msg = PointCloud2()
+    assert(points.shape == colors.shape)
+
+    buf = []
+
+    if stamp:
+        msg.header.stamp = stamp
+    if frame_id:
+        msg.header.frame_id = frame_id
+    if seq: 
+        msg.header.seq = seq
+    if len(points.shape) == 3:
+        msg.height = points.shape[1]
+        msg.width = points.shape[0]
+    else:
+        N = len(points)
+        xyzrgb = np.array(np.hstack([points, colors]), dtype=np.float32)
+        msg.height = 1
+        msg.width = N
+
+    msg.fields = [
+        PointField('x', 0, PointField.FLOAT32, 1),
+        PointField('y', 4, PointField.FLOAT32, 1),
+        PointField('z', 8, PointField.FLOAT32, 1),
+        PointField('r', 12, PointField.FLOAT32, 1),
+        PointField('g', 16, PointField.FLOAT32, 1),
+        PointField('b', 20, PointField.FLOAT32, 1)
+    ]
+    msg.is_bigendian = False
+    msg.point_step = 24
+    msg.row_step = msg.point_step * N
+    msg.is_dense = True; 
+    msg.data = xyzrgb.tostring()
+
+    return msg 
  
 
  
 from sensor_msgs.msg import PointCloud2 
 import sensor_msgs.point_cloud2 as pc2
+
+
 class PointNet_Ros_Node:
   def __init__(self):
     '''initiliaze  ros stuff '''
     self.cloud_pub = rospy.Publisher("output/pointnet/segmented",PointCloud2)
-    self.cloud_sub = rospy.Subscriber("/corrected_cloud_ros_frame_convention", PointCloud2,self.callback,queue_size=1)
-  
-  def pointcloud2_to_array(self,cloud_msg):
-    ''' 
-    Converts a rospy PointCloud2 message to a numpy recordarray 
-    
-    Assumes all fields 32 bit floats, and there is no padding.
-    '''
-    dtype_list = [(f.name, np.float32) for f in cloud_msg.fields]
-    cloud_arr = np.fromstring(cloud_msg.data, dtype_list)
-    return  cloud_arr  
-  
-  def callback(self, ros_point_cloud):
-    xyz = np.array([[0,0,0]])
+    self.cloud_sub = rospy.Subscriber("/baled_cloud", PointCloud2,self.callback,queue_size=1)
 
-    for p in pc2.read_points(ros_point_cloud, field_names = ("x", "y", "z"), skip_nans=True):
-      n = np.array([p[0],p[1],p[2]])
-      xyz = np.append(xyz,[[p[0],p[1],p[2]]], axis = 0)
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(xyz)
-    #
-    # pcd.colors = o3d.utility.Vector3dVector(colors)
-
-    o3d.io.write_point_cloud("/home/atas/test.ply", pcd)
-    self.evaluate("/home/atas/test.ply","/home/atas/results.ply")
-    print("spinning")
-
-
-
-  def evaluate(self,ply_file_path, out_ply_file_path):
     is_training = False
     
     with tf.device('/gpu:'+str(GPU_INDEX)):
@@ -153,12 +169,12 @@ class PointNet_Ros_Node:
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     config.allow_soft_placement = True
-    sess = tf.Session(config=config)
+    self.sess = tf.Session(config=config)
 
-    saver.restore(sess, MODEL_PATH)
+    saver.restore(self.sess, MODEL_PATH)
     log_string("Model restored.")
 
-    ops = {'pointclouds_pl': pointclouds_pl,
+    self.ops = {'pointclouds_pl': pointclouds_pl,
         'labels_pl': labels_pl,
         'is_training_pl': is_training_pl,
         'pred': pred,
@@ -170,22 +186,43 @@ class PointNet_Ros_Node:
     fout_out_filelist = open(FLAGS.output_filelist, 'w')
     
 
-    out_data_label_filename = os.path.basename(ply_file_path)[:-4] + '_pred.txt'
-    out_data_label_filename = os.path.join(DUMP_DIR, out_data_label_filename)
-    out_gt_label_filename = os.path.basename(ply_file_path)[:-4] + '_gt.txt'
-    out_gt_label_filename = os.path.join(DUMP_DIR, out_gt_label_filename)
-
-    print(ply_file_path, out_data_label_filename)
-      # Evaluate room one by one.
-    a, b = self.eval_one_epoch(sess, ops, ply_file_path,out_ply_file_path, out_data_label_filename, out_gt_label_filename)
-    total_correct += a
-    total_seen += b
-    fout_out_filelist.write(out_data_label_filename+'\n')
+  
+  def pointcloud2_to_array(self,cloud_msg):
+    ''' 
+    Converts a rospy PointCloud2 message to a numpy recordarray 
     
-    fout_out_filelist.close()
-    #log_string('all room eval accuracy: %f'% (total_correct / float(total_seen)))
+    Assumes all fields 32 bit floats, and there is no padding.
+    '''
+    dtype_list = [(f.name, np.float32) for f in cloud_msg.fields]
+    cloud_arr = np.fromstring(cloud_msg.data, dtype_list)
+    return  cloud_arr  
+  
+  def callback(self, ros_point_cloud):
+    xyz = np.array([[0,0,0]])
+    rgb = np.array([[0,0,0]])
 
-  def eval_one_epoch(self,sess, ops, ply_file_path, out_ply_file_path, out_data_label_filename, out_gt_label_filename):
+    for p in pc2.read_points(ros_point_cloud, field_names = ("x", "y", "z","r", "g", "b"), skip_nans=True):
+      n = np.array([p[0],p[1],p[2]])
+      xyz = np.append(xyz,[[p[0],p[1],p[2]]], axis = 0)
+      rgb = np.append(rgb,[[0,0,0]], axis = 0)
+
+
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(xyz)
+    pcd.colors = o3d.utility.Vector3dVector(rgb)
+    o3d.io.write_point_cloud("/home/atas/test.ply", pcd)
+    self.evaluate("/home/atas/test.ply","/home/atas/results.ply")
+
+    print("spinning")
+
+
+
+  def evaluate(self,ply_file_path, out_ply_file_path):
+      # Evaluate room one by one.
+    a, b = self.eval_one_epoch(self.sess, self.ops, ply_file_path,out_ply_file_path)
+
+
+  def eval_one_epoch(self,sess, ops, ply_file_path, out_ply_file_path):
     error_cnt = 0
     is_training = False
     total_correct = 0
@@ -194,18 +231,7 @@ class PointNet_Ros_Node:
     total_seen_class = [0 for _ in range(NUM_CLASSES)]
     total_correct_class = [0 for _ in range(NUM_CLASSES)]
 
-    if FLAGS.visu:
-      fout = open(os.path.join(DUMP_DIR, os.path.basename(ply_file_path)[:-4]+'_pred.obj'), 'w')
-      fout_gt = open(os.path.join(DUMP_DIR, os.path.basename(ply_file_path)[:-4]+'_gt.obj'), 'w')
-      fout_real_color = open(os.path.join(DUMP_DIR, os.path.basename(ply_file_path)[:-4]+'_real_color.obj'), 'w')
-    fout_data_label = open(out_data_label_filename, 'w')
-    fout_gt_label = open(out_gt_label_filename, 'w')
 
-    out_pcd = o3d.geometry.PointCloud()
-    xyz = np.zeros((NUM_POINT, 3))
-    colors = np.zeros((NUM_POINT, 3))
-
-    
     data_label_npy = ply2npy(ply_file_path)
     current_data, current_label = room2blocks_wrapper_normalized(data_label_npy, NUM_POINT)
 
@@ -246,47 +272,29 @@ class PointNet_Ros_Node:
         pts[:,8] *= max_room_z
         pts[:,3:6] *= 255.0
         pred = pred_label[b, :]
+        xyz = np.zeros((NUM_POINT, 3))
+        colors = np.zeros((NUM_POINT, 3))
         for i in range(NUM_POINT):
           color = indoor3d_util.g_label2color[pred[i]]
           color_gt = indoor3d_util.g_label2color[current_label[start_idx+b, i]]
-          if FLAGS.visu:
-            fout.write('v %f %f %f %d %d %d\n' % (pts[i,0], pts[i,1], pts[i,2], color[0], color[1], color[2]))
-            fout_gt.write('v %f %f %f %d %d %d\n' % (pts[i,0], pts[i,1], pts[i,2], color_gt[0], color_gt[1], color_gt[2]))
 
-            xyz[i, 0], xyz[i, 1],xyz[i, 2] = pts[i,0], pts[i,1], pts[i,2]
-            colors[i,0],colors[i,1],colors[i,2] = color[0], color[1], color[2]
+          xyz[i, 0], xyz[i, 1],xyz[i, 2] = pts[i,0], pts[i,1], pts[i,2]
+          colors[i,0],colors[i,1],colors[i,2] = color_gt[0], color_gt[1], color_gt[2]
 
+      out_pcd = o3d.geometry.PointCloud()    
+      out_pcd.points = o3d.utility.Vector3dVector(xyz)
+      out_pcd.colors = o3d.utility.Vector3dVector(colors)
+      o3d.io.write_point_cloud(out_ply_file_path,out_pcd)
 
-          fout_data_label.write('%f %f %f %d %d %d %f %d\n' % (pts[i,0], pts[i,1], pts[i,2], pts[i,3], pts[i,4], pts[i,5], pred_val[b,i,pred[i]], pred[i]))
-          fout_gt_label.write('%d\n' % (l[i]))
-      
       correct = np.sum(pred_label == current_label[start_idx:end_idx,:])
       total_correct += correct
       total_seen += (cur_batch_size*NUM_POINT)
       loss_sum += (loss_val*BATCH_SIZE)
-      for i in range(start_idx, end_idx):
-        for j in range(NUM_POINT):
-          l = current_label[i, j]
-          #total_seen_class[l] += 1
-          #total_correct_class[l] += (pred_label[i-start_idx, j] == l)
 
     log_string('eval mean loss: %f' % (loss_sum / float(total_seen/NUM_POINT)))
     log_string('eval accuracy: %f'% (total_correct / float(total_seen)))
-    fout_data_label.close()
-    fout_gt_label.close()
 
-    out_pcd.points = o3d.utility.Vector3dVector(xyz)
-    out_pcd.colors = o3d.utility.Vector3dVector(colors)
-    o3d.io.write_point_cloud(out_ply_file_path,out_pcd)
-
-    if FLAGS.visu:
-      fout.close()
-      fout_gt.close()
     return total_correct, total_seen
-
-
-
-
 
 
 
