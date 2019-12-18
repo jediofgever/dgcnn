@@ -144,7 +144,7 @@ def xyzrgb_array_to_pointcloud2(points, colors, stamp=None, frame_id=None, seq=N
  
 
  
-from sensor_msgs.msg import PointCloud2 
+from sensor_msgs.msg import PointCloud2, PointField
 import sensor_msgs.point_cloud2 as pc2
 
 
@@ -181,21 +181,8 @@ class PointNet_Ros_Node:
         'pred_softmax': pred_softmax,
         'loss': loss}
     
-    total_correct = 0
-    total_seen = 0
-    fout_out_filelist = open(FLAGS.output_filelist, 'w')
-    
 
-  
-  def pointcloud2_to_array(self,cloud_msg):
-    ''' 
-    Converts a rospy PointCloud2 message to a numpy recordarray 
     
-    Assumes all fields 32 bit floats, and there is no padding.
-    '''
-    dtype_list = [(f.name, np.float32) for f in cloud_msg.fields]
-    cloud_arr = np.fromstring(cloud_msg.data, dtype_list)
-    return  cloud_arr  
   
   def callback(self, ros_point_cloud):
     xyz = np.array([[0,0,0]])
@@ -212,39 +199,23 @@ class PointNet_Ros_Node:
     pcd.colors = o3d.utility.Vector3dVector(rgb)
     o3d.io.write_point_cloud("/home/atas/test.ply", pcd)
     self.evaluate("/home/atas/test.ply","/home/atas/results.ply")
-
     print("spinning")
-
-
 
   def evaluate(self,ply_file_path, out_ply_file_path):
       # Evaluate room one by one.
-    a, b = self.eval_one_epoch(self.sess, self.ops, ply_file_path,out_ply_file_path)
+    self.eval_one_epoch(self.sess, self.ops, ply_file_path,out_ply_file_path)
 
 
   def eval_one_epoch(self,sess, ops, ply_file_path, out_ply_file_path):
-    error_cnt = 0
-    is_training = False
-    total_correct = 0
-    total_seen = 0
-    loss_sum = 0
-    total_seen_class = [0 for _ in range(NUM_CLASSES)]
-    total_correct_class = [0 for _ in range(NUM_CLASSES)]
-
 
     data_label_npy = ply2npy(ply_file_path)
     current_data, current_label = room2blocks_wrapper_normalized(data_label_npy, NUM_POINT)
 
     current_data = current_data[:,0:NUM_POINT,:]
-    # Get room dimension..
-  
-    max_room_x = 8
-    max_room_y = 8
-    max_room_z = 8
-    
+
     file_size = current_data.shape[0]
     num_batches = file_size // BATCH_SIZE
-    print(file_size)
+    is_training =False
 
     
     for batch_idx in range(num_batches):
@@ -267,10 +238,7 @@ class PointNet_Ros_Node:
       for b in range(BATCH_SIZE):
         pts = current_data[start_idx+b, :, :]
         l = current_label[start_idx+b,:]
-        pts[:,6] *= max_room_x
-        pts[:,7] *= max_room_y
-        pts[:,8] *= max_room_z
-        pts[:,3:6] *= 255.0
+
         pred = pred_label[b, :]
         xyz = np.zeros((NUM_POINT, 3))
         colors = np.zeros((NUM_POINT, 3))
@@ -284,32 +252,16 @@ class PointNet_Ros_Node:
       out_pcd = o3d.geometry.PointCloud()    
       out_pcd.points = o3d.utility.Vector3dVector(xyz)
       out_pcd.colors = o3d.utility.Vector3dVector(colors)
+
+      msg = xyzrgb_array_to_pointcloud2(xyz,colors,rospy.Time.now(),"camera_link", 1)
+      self.cloud_pub.publish(msg)
+      
       o3d.io.write_point_cloud(out_ply_file_path,out_pcd)
 
-      correct = np.sum(pred_label == current_label[start_idx:end_idx,:])
-      total_correct += correct
-      total_seen += (cur_batch_size*NUM_POINT)
-      loss_sum += (loss_val*BATCH_SIZE)
 
-    log_string('eval mean loss: %f' % (loss_sum / float(total_seen/NUM_POINT)))
-    log_string('eval accuracy: %f'% (total_correct / float(total_seen)))
-
-    return total_correct, total_seen
-
-
-
-      
+  
 if __name__=='__main__':
   
   ic = PointNet_Ros_Node()
   rospy.init_node('ros_point_cloud',anonymous=True)
   rospy.spin()
-  '''
-  while(True):
-    with tf.Graph().as_default():
-
-      ply_file_path = INFERENCE_DIR+ "latest_raw.ply"
-      out_ply_file_path = INFERENCE_DIR+ "latest_segmented.pcd"
-
-      #evaluate(ply_file_path, out_ply_file_path)      
-      # '''
