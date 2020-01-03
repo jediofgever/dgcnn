@@ -21,7 +21,7 @@ parser.add_argument('--num_gpu', type=int, default=1, help='the number of GPUs t
 parser.add_argument('--log_dir', default='log', help='Log dir [default: log]')
 parser.add_argument('--num_point', type=int, default=4096, help='Point number [default: 4096]')
 parser.add_argument('--max_epoch', type=int, default=101, help='Epoch to run [default: 50]')
-parser.add_argument('--batch_size', type=int, default=4, help='Batch Size during training for each GPU [default: 24]')
+parser.add_argument('--batch_size', type=int, default=8, help='Batch Size during training for each GPU [default: 24]')
 parser.add_argument('--learning_rate', type=float, default=0.001, help='Initial learning rate [default: 0.001]')
 parser.add_argument('--momentum', type=float, default=0.9, help='Initial learning rate [default: 0.9]')
 parser.add_argument('--optimizer', default='adam', help='adam or momentum [default: adam]')
@@ -146,7 +146,7 @@ def average_gradients(tower_grads):
   return average_grads
 
 def train():
-  with tf.Graph().as_default(), tf.device('/cpu:0'):
+  with tf.Graph().as_default(), tf.device('/gpu:0'):
     batch = tf.Variable(0, trainable=False)
     
     bn_decay = get_bn_decay(batch)
@@ -196,7 +196,7 @@ def train():
     saver = tf.train.Saver(tf.global_variables(), sharded=True, max_to_keep=10)
     
     # Create a session
-    config = tf.ConfigProto()
+    config = tf.ConfigProto(log_device_placement=True)
     config.gpu_options.allow_growth = True
     config.allow_soft_placement = True
     sess = tf.Session(config=config)
