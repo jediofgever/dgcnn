@@ -60,39 +60,39 @@ CMAKE_SOURCE_DIR = /home/atas/catkin_build_ws/src/ROS_NNs_FANUC_LRMATE200ID/dgcn
 CMAKE_BINARY_DIR = /home/atas/catkin_build_ws/src/ROS_NNs_FANUC_LRMATE200ID/dgcnn/scripts/build
 
 #=============================================================================
-# Target rules for target CMakeFiles/read_pcd.dir
+# Target rules for target CMakeFiles/convert_pcd2ply.dir
 
 # All Build rule for target.
-CMakeFiles/read_pcd.dir/all:
-	$(MAKE) -f CMakeFiles/read_pcd.dir/build.make CMakeFiles/read_pcd.dir/depend
-	$(MAKE) -f CMakeFiles/read_pcd.dir/build.make CMakeFiles/read_pcd.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/atas/catkin_build_ws/src/ROS_NNs_FANUC_LRMATE200ID/dgcnn/scripts/build/CMakeFiles --progress-num=1,2 "Built target read_pcd"
-.PHONY : CMakeFiles/read_pcd.dir/all
+CMakeFiles/convert_pcd2ply.dir/all:
+	$(MAKE) -f CMakeFiles/convert_pcd2ply.dir/build.make CMakeFiles/convert_pcd2ply.dir/depend
+	$(MAKE) -f CMakeFiles/convert_pcd2ply.dir/build.make CMakeFiles/convert_pcd2ply.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/atas/catkin_build_ws/src/ROS_NNs_FANUC_LRMATE200ID/dgcnn/scripts/build/CMakeFiles --progress-num=1,2 "Built target convert_pcd2ply"
+.PHONY : CMakeFiles/convert_pcd2ply.dir/all
 
 # Include target in all.
-all: CMakeFiles/read_pcd.dir/all
+all: CMakeFiles/convert_pcd2ply.dir/all
 
 .PHONY : all
 
 # Build rule for subdir invocation for target.
-CMakeFiles/read_pcd.dir/rule: cmake_check_build_system
+CMakeFiles/convert_pcd2ply.dir/rule: cmake_check_build_system
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/atas/catkin_build_ws/src/ROS_NNs_FANUC_LRMATE200ID/dgcnn/scripts/build/CMakeFiles 2
-	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/read_pcd.dir/all
+	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/convert_pcd2ply.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/atas/catkin_build_ws/src/ROS_NNs_FANUC_LRMATE200ID/dgcnn/scripts/build/CMakeFiles 0
-.PHONY : CMakeFiles/read_pcd.dir/rule
+.PHONY : CMakeFiles/convert_pcd2ply.dir/rule
 
 # Convenience name for target.
-read_pcd: CMakeFiles/read_pcd.dir/rule
+convert_pcd2ply: CMakeFiles/convert_pcd2ply.dir/rule
 
-.PHONY : read_pcd
-
-# clean rule for target.
-CMakeFiles/read_pcd.dir/clean:
-	$(MAKE) -f CMakeFiles/read_pcd.dir/build.make CMakeFiles/read_pcd.dir/clean
-.PHONY : CMakeFiles/read_pcd.dir/clean
+.PHONY : convert_pcd2ply
 
 # clean rule for target.
-clean: CMakeFiles/read_pcd.dir/clean
+CMakeFiles/convert_pcd2ply.dir/clean:
+	$(MAKE) -f CMakeFiles/convert_pcd2ply.dir/build.make CMakeFiles/convert_pcd2ply.dir/clean
+.PHONY : CMakeFiles/convert_pcd2ply.dir/clean
+
+# clean rule for target.
+clean: CMakeFiles/convert_pcd2ply.dir/clean
 
 .PHONY : clean
 

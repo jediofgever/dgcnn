@@ -196,7 +196,7 @@ CMAKE_OBJCOPY:FILEPATH=/usr/bin/objcopy
 CMAKE_OBJDUMP:FILEPATH=/usr/bin/objdump
 
 //Value Computed by CMake
-CMAKE_PROJECT_NAME:STATIC=read_pcd
+CMAKE_PROJECT_NAME:STATIC=convert_pcd2ply
 
 //Path to a program.
 CMAKE_RANLIB:FILEPATH=/usr/bin/ranlib
@@ -615,6 +615,12 @@ USB_10_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libusb-1.0.so
 
 //The directory containing VTKConfig.cmake
 VTK_DIR:PATH=/usr/lib/cmake/vtk-6.3
+
+//Value Computed by CMake
+convert_pcd2ply_BINARY_DIR:STATIC=/home/atas/catkin_build_ws/src/ROS_NNs_FANUC_LRMATE200ID/dgcnn/scripts/build
+
+//Value Computed by CMake
+convert_pcd2ply_SOURCE_DIR:STATIC=/home/atas/catkin_build_ws/src/ROS_NNs_FANUC_LRMATE200ID/dgcnn/scripts
 
 //The directory containing a CMake configuration file for flann.
 flann_DIR:PATH=flann_DIR-NOTFOUND

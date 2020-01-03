@@ -111,44 +111,44 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named read_pcd
+# Target rules for targets named convert_pcd2ply
 
 # Build rule for target.
-read_pcd: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 read_pcd
-.PHONY : read_pcd
+convert_pcd2ply: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 convert_pcd2ply
+.PHONY : convert_pcd2ply
 
 # fast build rule for target.
-read_pcd/fast:
-	$(MAKE) -f CMakeFiles/read_pcd.dir/build.make CMakeFiles/read_pcd.dir/build
-.PHONY : read_pcd/fast
+convert_pcd2ply/fast:
+	$(MAKE) -f CMakeFiles/convert_pcd2ply.dir/build.make CMakeFiles/convert_pcd2ply.dir/build
+.PHONY : convert_pcd2ply/fast
 
-read_pcd.o: read_pcd.cpp.o
+convert_pcd2ply.o: convert_pcd2ply.cpp.o
 
-.PHONY : read_pcd.o
+.PHONY : convert_pcd2ply.o
 
 # target to build an object file
-read_pcd.cpp.o:
-	$(MAKE) -f CMakeFiles/read_pcd.dir/build.make CMakeFiles/read_pcd.dir/read_pcd.cpp.o
-.PHONY : read_pcd.cpp.o
+convert_pcd2ply.cpp.o:
+	$(MAKE) -f CMakeFiles/convert_pcd2ply.dir/build.make CMakeFiles/convert_pcd2ply.dir/convert_pcd2ply.cpp.o
+.PHONY : convert_pcd2ply.cpp.o
 
-read_pcd.i: read_pcd.cpp.i
+convert_pcd2ply.i: convert_pcd2ply.cpp.i
 
-.PHONY : read_pcd.i
+.PHONY : convert_pcd2ply.i
 
 # target to preprocess a source file
-read_pcd.cpp.i:
-	$(MAKE) -f CMakeFiles/read_pcd.dir/build.make CMakeFiles/read_pcd.dir/read_pcd.cpp.i
-.PHONY : read_pcd.cpp.i
+convert_pcd2ply.cpp.i:
+	$(MAKE) -f CMakeFiles/convert_pcd2ply.dir/build.make CMakeFiles/convert_pcd2ply.dir/convert_pcd2ply.cpp.i
+.PHONY : convert_pcd2ply.cpp.i
 
-read_pcd.s: read_pcd.cpp.s
+convert_pcd2ply.s: convert_pcd2ply.cpp.s
 
-.PHONY : read_pcd.s
+.PHONY : convert_pcd2ply.s
 
 # target to generate assembly for a file
-read_pcd.cpp.s:
-	$(MAKE) -f CMakeFiles/read_pcd.dir/build.make CMakeFiles/read_pcd.dir/read_pcd.cpp.s
-.PHONY : read_pcd.cpp.s
+convert_pcd2ply.cpp.s:
+	$(MAKE) -f CMakeFiles/convert_pcd2ply.dir/build.make CMakeFiles/convert_pcd2ply.dir/convert_pcd2ply.cpp.s
+.PHONY : convert_pcd2ply.cpp.s
 
 # Help Target
 help:
@@ -157,11 +157,11 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... rebuild_cache"
-	@echo "... read_pcd"
+	@echo "... convert_pcd2ply"
 	@echo "... edit_cache"
-	@echo "... read_pcd.o"
-	@echo "... read_pcd.i"
-	@echo "... read_pcd.s"
+	@echo "... convert_pcd2ply.o"
+	@echo "... convert_pcd2ply.i"
+	@echo "... convert_pcd2ply.s"
 .PHONY : help
 
 

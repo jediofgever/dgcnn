@@ -10,8 +10,8 @@ label = np.zeros((193,  4096),dtype = np.uint8)
  	
 f = h5py.File('real_data.h5', 'w')
 
-labeled_data_dir = '/home/atas/pcd_dataset_labeled/'
-rgb_data_dir = '/home/atas/pcl_dataset/'
+labeled_data_dir = '/home/atas/POINTNET_LABELED_REAL_DATASET/'
+rgb_data_dir = '/home/atas/POINTNET_REAL_DATASET/'
 i = -1
 
 for filepath in glob.iglob(labeled_data_dir+'*.ply'):

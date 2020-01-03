@@ -18,7 +18,7 @@ main (int argc, char** argv)
   pcl::PointCloud<pcl::PointXYZL>::Ptr vertices( new pcl::PointCloud<pcl::PointXYZL> );
   pcl::PCDReader reader;
 
- for (directory_entry& entry : directory_iterator("/home/atas/pcd_dataset_labeled/")){
+ for (directory_entry& entry : directory_iterator("/home/atas/POINTNET_LABELED_REAL_DATASET/")){
 
     const boost::filesystem::path path = entry.path();
     std::string path_string =  path.string();
@@ -43,7 +43,7 @@ main (int argc, char** argv)
   pcl::fromPCLPointCloud2(cloud, *vertices ); 
 
     pcl::PLYWriter writer;
-    writer.write("/home/atas/pcd_dataset_labeled/"+std::to_string(id)+".ply", cloud, Eigen::Vector4f::Zero(), Eigen::Quaternionf::Identity(), true, false);
+    writer.write("/home/atas/POINTNET_LABELED_REAL_DATASET/"+std::to_string(id)+".ply", cloud, Eigen::Vector4f::Zero(), Eigen::Quaternionf::Identity(), true, false);
 
 }
 
